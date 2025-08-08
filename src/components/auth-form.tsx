@@ -6,9 +6,9 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { ErrorAlert } from '@/components/error-alert'
 import { SuccessToast } from '@/components/success-toast'
 import { Loader2 } from 'lucide-react'
@@ -22,7 +22,7 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
-  phone: z.string().regex(/^\+?1?\d{9,15}$/, 'Invalid phone number'),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
   firstName: z.string().min(1, 'First name is required'),
@@ -56,20 +56,24 @@ export function AuthForm({ type, tenant, token }: AuthFormProps) {
   const [success, setSuccess] = useState<string | null>(null)
   const router = useRouter()
 
-  const getSchema = () => {
-    switch (type) {
-      case 'login': return loginSchema
-      case 'register': return registerSchema
-      case 'forgot-password': return forgotPasswordSchema
-      case 'reset-password': return resetPasswordSchema
-    }
-  }
-
   const form = useForm({
-    resolver: zodResolver(getSchema()),
+    resolver: zodResolver(
+      type === 'login' ? loginSchema :
+      type === 'register' ? registerSchema :
+      type === 'forgot-password' ? forgotPasswordSchema :
+      resetPasswordSchema
+    ),
+    defaultValues: {
+      email: '',
+      password: '',
+      confirmPassword: '',
+      firstName: '',
+      lastName: '',
+      phone: ''
+    }
   })
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (values: any) => {
     setLoading(true)
     setError(null)
     setSuccess(null)
@@ -77,21 +81,21 @@ export function AuthForm({ type, tenant, token }: AuthFormProps) {
     try {
       switch (type) {
         case 'login':
-          await login(tenant, data)
+          await login(tenant, values)
           router.push(`/${tenant}/dashboard`)
           break
         case 'register':
-          await register(tenant, data)
+          await register(tenant, values)
           setSuccess('Account created successfully! Please sign in.')
           setTimeout(() => router.push(`/${tenant}/login`), 2000)
           break
         case 'forgot-password':
-          await forgotPassword(tenant, data)
+          await forgotPassword(tenant, values)
           setSuccess('Password reset instructions sent to your email.')
           break
         case 'reset-password':
           if (!token) throw new Error('Reset token is required')
-          await resetPassword(tenant, { ...data, token })
+          await resetPassword(tenant, { ...values, token })
           setSuccess('Password reset successfully!')
           setTimeout(() => router.push(`/${tenant}/login`), 2000)
           break
@@ -103,187 +107,173 @@ export function AuthForm({ type, tenant, token }: AuthFormProps) {
     }
   }
 
-  const getTitle = () => {
-    switch (type) {
-      case 'login': return 'Sign In'
-      case 'register': return 'Create Account'
-      case 'forgot-password': return 'Reset Password'
-      case 'reset-password': return 'Set New Password'
-    }
-  }
-
-  const getDescription = () => {
-    switch (type) {
-      case 'login': return 'Enter your credentials to access your account'
-      case 'register': return 'Create a new account to get started'
-      case 'forgot-password': return 'Enter your email to receive reset instructions'
-      case 'reset-password': return 'Enter your new password'
-    }
-  }
-
   return (
-    <Card>
+    <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>{getTitle()}</CardTitle>
-        <CardDescription>{getDescription()}</CardDescription>
+        <CardTitle className="text-2xl">
+          {type === 'login' ? 'Sign In' : 
+           type === 'register' ? 'Create Account' :
+           type === 'forgot-password' ? 'Reset Password' : 'Set New Password'}
+        </CardTitle>
+        <CardDescription>
+          {type === 'login' ? 'Enter your credentials to access your account' :
+           type === 'register' ? 'Create a new account to get started' :
+           type === 'forgot-password' ? 'Enter your email to receive reset instructions' : 'Enter your new password'}
+        </CardDescription>
       </CardHeader>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
-          {error && <ErrorAlert message={error} />}
-          {success && <SuccessToast message={success} />}
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {error && <ErrorAlert message={error} />}
+            {success && <SuccessToast message={success} />}
 
-          {(type === 'login' || type === 'register' || type === 'forgot-password') && (
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                {...form.register('email')}
-                disabled={loading}
-              />
-              {form.formState.errors.email && (
-                <p className="text-sm text-red-600">
-                  {form.formState.errors.email.message as string}
-                </p>
-              )}
-            </div>
-          )}
-
-          {type === 'register' && (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    {...form.register('firstName')}
-                    disabled={loading}
-                  />
-                  {form.formState.errors.firstName && (
-                    <p className="text-sm text-red-600">
-                      {form.formState.errors.firstName.message as string}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName"
-                    {...form.register('lastName')}
-                    disabled={loading}
-                  />
-                  {form.formState.errors.lastName && (
-                    <p className="text-sm text-red-600">
-                      {form.formState.errors.lastName.message as string}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+1234567890"
-                  {...form.register('phone')}
-                  disabled={loading}
-                />
-                {form.formState.errors.phone && (
-                  <p className="text-sm text-red-600">
-                    {form.formState.errors.phone.message as string}
-                  </p>
+            {(type === 'login' || type === 'register' || type === 'forgot-password') && (
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="email@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
+              />
+            )}
+
+            {type === 'register' && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+1234567890" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
+
+            {(type === 'login' || type === 'register' || type === 'reset-password') && (
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {type === 'reset-password' ? 'New Password' : 'Password'}
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {(type === 'register' || type === 'reset-password') && (
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {type === 'login' && 'Sign In'}
+              {type === 'register' && 'Create Account'}
+              {type === 'forgot-password' && 'Send Reset Email'}
+              {type === 'reset-password' && 'Update Password'}
+            </Button>
+          </form>
+        </Form>
+
+        <div className="mt-4 text-center text-sm">
+          {type === 'login' && (
+            <>
+              <Link 
+                href={`/${tenant}/forgot-password`}
+                className="text-primary hover:underline"
+              >
+                Forgot your password?
+              </Link>
+              <div className="mt-2">
+                {"Don't have an account? "}
+                <Link 
+                  href={`/${tenant}/register`}
+                  className="text-primary hover:underline"
+                >
+                  Sign up
+                </Link>
               </div>
             </>
           )}
-
-          {(type === 'login' || type === 'register' || type === 'reset-password') && (
-            <div className="space-y-2">
-              <Label htmlFor="password">
-                {type === 'reset-password' ? 'New Password' : 'Password'}
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                {...form.register('password')}
-                disabled={loading}
-              />
-              {form.formState.errors.password && (
-                <p className="text-sm text-red-600">
-                  {form.formState.errors.password.message as string}
-                </p>
-              )}
-            </div>
-          )}
-
-          {(type === 'register' || type === 'reset-password') && (
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                {...form.register('confirmPassword')}
-                disabled={loading}
-              />
-              {form.formState.errors.confirmPassword && (
-                <p className="text-sm text-red-600">
-                  {form.formState.errors.confirmPassword.message as string}
-                </p>
-              )}
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {type === 'login' && 'Sign In'}
-            {type === 'register' && 'Create Account'}
-            {type === 'forgot-password' && 'Send Reset Email'}
-            {type === 'reset-password' && 'Update Password'}
-          </Button>
-
-          <div className="text-center text-sm space-y-2">
-            {type === 'login' && (
-              <>
-                <Link 
-                  href={`/${tenant}/forgot-password`}
-                  className="text-blue-600 hover:underline"
-                >
-                  Forgot your password?
-                </Link>
-                <div>
-                  {"Don't have an account? "}
-                  <Link 
-                    href={`/${tenant}/register`}
-                    className="text-blue-600 hover:underline"
-                  >
-                    Sign up
-                  </Link>
-                </div>
-              </>
-            )}
-            {type === 'register' && (
-              <div>
-                Already have an account?{' '}
-                <Link 
-                  href={`/${tenant}/login`}
-                  className="text-blue-600 hover:underline"
-                >
-                  Sign in
-                </Link>
-              </div>
-            )}
-            {(type === 'forgot-password' || type === 'reset-password') && (
+          {type === 'register' && (
+            <div>
+              Already have an account?{' '}
               <Link 
                 href={`/${tenant}/login`}
-                className="text-blue-600 hover:underline"
+                className="text-primary hover:underline"
               >
-                Back to sign in
+                Sign in
               </Link>
-            )}
-          </div>
-        </CardFooter>
-      </form>
+            </div>
+          )}
+          {(type === 'forgot-password' || type === 'reset-password') && (
+            <Link 
+              href={`/${tenant}/login`}
+              className="text-primary hover:underline"
+            >
+              Back to sign in
+            </Link>
+          )}
+        </div>
+      </CardContent>
     </Card>
   )
 }

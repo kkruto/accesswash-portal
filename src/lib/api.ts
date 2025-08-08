@@ -1,84 +1,112 @@
-import axios from 'axios'
-import type { 
-  Tenant, 
-  User, 
-  DashboardData, 
-  UserProfile, 
-  LoginRequest, 
-  RegisterRequest,
-  ForgotPasswordRequest,
-  ResetPasswordRequest 
-} from './types'
+// src/lib/api.ts
+import axios, { AxiosError } from "axios";
 
-// Create axios instance with default config
-const createApiClient = (tenant?: string) => {
-  const baseURL = tenant 
-    ? `https://${tenant}.accesswash.org/api`
-    : 'https://accesswash.org/api'
-    
-  return axios.create({
-    baseURL,
-    withCredentials: true,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
+/**
+ * Centralized API module for AccessWASH frontend.
+ * Uses tenant-aware base url: https://{tenant}.{NEXT_PUBLIC_API_DOMAIN}/api
+ */
+
+const API_DOMAIN = process.env.NEXT_PUBLIC_API_DOMAIN || "accesswash.org";
+
+const axiosInstance = axios.create({
+  withCredentials: true,
+  timeout: 15000,
+});
+
+axiosInstance.interceptors.response.use(
+  (res) => res,
+  (err: AxiosError) => {
+    if (err.response?.status === 401) {
+      // Optionally notify app about unauthenticated state:
+      // window.dispatchEvent(new Event("aw:unauth"));
+    }
+    return Promise.reject(err);
+  }
+);
+
+function baseUrlForTenant(tenant: string) {
+  return `https://${tenant}.${API_DOMAIN}/api`;
 }
 
-// Tenant APIs
-export async function getTenants(): Promise<Tenant[]> {
-  const api = createApiClient()
-  const response = await api.get('/tenants/')
-  return response.data
+/* --------------------- AUTH --------------------- */
+
+export async function login(tenant: string, payload: { email: string; password: string }) {
+  const url = `${baseUrlForTenant(tenant)}/auth/login/`;
+  const res = await axiosInstance.post(url, payload);
+  return res.data;
 }
 
-export async function validateTenant(tenantId: string): Promise<Tenant> {
-  const api = createApiClient()
-  const response = await api.get(`/tenants/${tenantId}/`)
-  return response.data
+export async function register(tenant: string, payload: any) {
+  const url = `${baseUrlForTenant(tenant)}/auth/register/`;
+  const res = await axiosInstance.post(url, payload);
+  return res.data;
 }
 
-// Auth APIs
-export async function login(tenant: string, data: LoginRequest): Promise<void> {
-  const api = createApiClient(tenant)
-  await api.post('/portal/auth/login/', data)
+export async function logout(tenant: string) {
+  const url = `${baseUrlForTenant(tenant)}/auth/logout/`;
+  const res = await axiosInstance.post(url);
+  return res.data;
 }
 
-export async function register(tenant: string, data: RegisterRequest): Promise<void> {
-  const api = createApiClient(tenant)
-  await api.post('/portal/auth/register/', data)
+/* --------------------- USER / PROFILE --------------------- */
+
+export async function getCurrentUser(tenant: string) {
+  const url = `${baseUrlForTenant(tenant)}/users/me/`;
+  const res = await axiosInstance.get(url);
+  return res.data;
 }
 
-export async function forgotPassword(tenant: string, data: ForgotPasswordRequest): Promise<void> {
-  const api = createApiClient(tenant)
-  await api.post('/portal/auth/forgot-password/', data)
+/* --------------------- DASHBOARD --------------------- */
+
+export async function getDashboardData(tenant: string) {
+  const url = `${baseUrlForTenant(tenant)}/dashboard/`;
+  const res = await axiosInstance.get(url);
+  return res.data;
 }
 
-export async function resetPassword(tenant: string, data: ResetPasswordRequest): Promise<void> {
-  const api = createApiClient(tenant)
-  await api.post('/portal/auth/reset-password/', data)
+/* --------------------- SERVICE REQUESTS --------------------- */
+
+export async function submitServiceRequest(
+  tenant: string,
+  payload: { title: string; description: string; type?: string; files?: File[] }
+) {
+  const url = `${baseUrlForTenant(tenant)}/requests/`;
+  const form = new FormData();
+  form.append("title", payload.title);
+  form.append("description", payload.description || "");
+  if (payload.type) form.append("type", payload.type);
+  if (payload.files && payload.files.length) {
+    for (let i = 0; i < payload.files.length; i++) {
+      form.append("files", payload.files[i]);
+    }
+  }
+  const res = await axiosInstance.post(url, form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
 }
 
-export async function logout(tenant: string): Promise<void> {
-  const api = createApiClient(tenant)
-  await api.post('/portal/auth/logout/')
+export async function fetchMyRequests(tenant: string) {
+  const url = `${baseUrlForTenant(tenant)}/requests/`;
+  const res = await axiosInstance.get(url);
+  return res.data;
 }
 
-// User APIs
-export async function getCurrentUser(tenant: string): Promise<User> {
-  const api = createApiClient(tenant)
-  const response = await api.get('/portal/auth/user/')
-  return response.data
+/* --------------------- Single Request --------------------- */
+
+export async function getRequest(tenant: string, id: string | number) {
+  const url = `${baseUrlForTenant(tenant)}/requests/${id}/`;
+  const res = await axiosInstance.get(url);
+  return res.data;
 }
 
-export async function getDashboardData(tenant: string): Promise<DashboardData> {
-  const api = createApiClient(tenant)
-  const response = await api.get('/portal/dashboard/')
-  return response.data
-}
-
-export async function getProfile(tenant: string): Promise<UserProfile> {
-  const api = createApiClient(tenant)
-  const response = await api.get('/portal/profile/')
-  return response.data
-}
+export default {
+  login,
+  register,
+  logout,
+  getCurrentUser,
+  getDashboardData,
+  submitServiceRequest,
+  fetchMyRequests,
+  getRequest,
+};

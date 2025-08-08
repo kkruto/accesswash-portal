@@ -6,14 +6,14 @@ export default function SelectUtilityPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Select Your Utility
+      <main className="flex-1 flex items-center justify-center bg-gradient-to-b from-blue-50 to-white dark:from-blue-900/10 dark:to-gray-900">
+        <div className="w-full max-w-4xl px-4 py-12">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              Select Your Utility Provider
             </h1>
-            <p className="text-gray-600">
-              Choose your utility provider to access your customer portal
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              Choose from our network of trusted water service providers to access your customer portal
             </p>
           </div>
           <UtilitySelector />
