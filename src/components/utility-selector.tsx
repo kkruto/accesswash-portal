@@ -35,7 +35,8 @@ export function UtilitySelector() {
     if (selectedTenant) {
       const tenant = tenants.find(t => t.id === selectedTenant)
       if (tenant) {
-        window.location.href = `https://${tenant.subdomain}.accesswash.org/${tenant.subdomain}/login`
+        // Navigate to the local portal login page for development
+        window.location.href = `/portal/${tenant.slug || tenant.id}/login`
       }
     }
   }
@@ -49,42 +50,47 @@ export function UtilitySelector() {
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-lg">
-      <CardHeader className="border-b">
-        <CardTitle className="text-2xl">Select Your Utility</CardTitle>
-        <CardDescription>
+    <Card className="w-full max-w-2xl mx-auto card card-hover">
+      <CardHeader className="pb-6">
+        <CardTitle className="text-3xl font-bold text-center">Select Your Utility</CardTitle>
+        <CardDescription className="text-center text-lg">
           Choose your provider from the list below to access your account
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-6 space-y-6">
+      <CardContent className="space-y-8">
         {error && <ErrorAlert message={error} />}
         
-        <div className="space-y-2">
-          <label htmlFor="utility-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <div className="space-y-4">
+          <label htmlFor="utility-select" className="block text-sm font-medium text-foreground">
             Utility Provider
           </label>
           <Select value={selectedTenant} onValueChange={setSelectedTenant}>
-            <SelectTrigger className="h-12">
+            <SelectTrigger className="h-14 text-lg border-2 hover:border-primary/50 transition-colors">
               <SelectValue placeholder="Select your utility provider..." />
             </SelectTrigger>
             <SelectContent className="max-h-96">
               {tenants.map((tenant) => (
-                <SelectItem key={tenant.id} value={tenant.id} className="py-3">
+                <SelectItem key={tenant.id} value={tenant.id} className="py-4 cursor-pointer hover:bg-accent">
                   <div className="flex items-center gap-3">
                     {tenant.logo ? (
                       <Image 
                         src={tenant.logo} 
                         alt={tenant.name} 
-                        width={24} 
-                        height={24} 
-                        className="rounded-sm object-contain"
+                        width={32} 
+                        height={32} 
+                        className="rounded-lg object-contain"
                       />
                     ) : (
-                      <div className="w-6 h-6 rounded-sm bg-blue-100 flex items-center justify-center">
-                        <span className="text-xs font-medium text-blue-600">AW</span>
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                        <span className="text-xs font-bold text-white">AW</span>
                       </div>
                     )}
-                    <span>{tenant.name}</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{tenant.name}</span>
+                      {tenant.city && (
+                        <span className="text-sm text-muted-foreground">{tenant.city}</span>
+                      )}
+                    </div>
                   </div>
                 </SelectItem>
               ))}
@@ -95,7 +101,7 @@ export function UtilitySelector() {
         <Button 
           onClick={handleContinue} 
           disabled={!selectedTenant}
-          className="w-full h-12 text-lg"
+          className="w-full h-14 text-lg btn-primary"
           size="lg"
         >
           Continue to Portal

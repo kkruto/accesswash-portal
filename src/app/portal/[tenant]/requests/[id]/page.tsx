@@ -1,7 +1,7 @@
 // src/app/[tenant]/requests/[id]/page.tsx
 "use client"
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, use } from "react";
 import { getRequest } from "@/lib/api";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -9,8 +9,8 @@ import { AttachmentGallery } from "@/components/attachment-gallery";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
-export default function RequestDetailPage({ params }: { params: { tenant: string; id: string } }) {
-  const { tenant, id } = params;
+export default function RequestDetailPage({ params }: { params: Promise<{ tenant: string; id: string }> }) {
+  const { tenant, id } = use(params);
   const [request, setRequest] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

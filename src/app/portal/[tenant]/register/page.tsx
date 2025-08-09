@@ -3,10 +3,11 @@ import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 
 interface RegisterPageProps {
-  params: { tenant: string }
+  params: Promise<{ tenant: string }>
 }
 
-export default function RegisterPage({ params }: RegisterPageProps) {
+export default async function RegisterPage({ params }: RegisterPageProps) {
+  const { tenant } = await params;
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -20,7 +21,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
               Register for your customer portal
             </p>
           </div>
-          <AuthForm type="register" tenant={params.tenant} />
+          <AuthForm type="register" tenant={tenant} />
         </div>
       </main>
       <Footer />

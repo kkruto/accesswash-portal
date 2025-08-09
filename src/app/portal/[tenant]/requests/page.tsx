@@ -1,13 +1,14 @@
 // src/app/[tenant]/requests/page.tsx
 "use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { fetchMyRequests } from "@/lib/api";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import Link from "next/link";
 
-export default function RequestsList({ params }: { params: { tenant: string } }) {
+export default function RequestsList({ params }: { params: Promise<{ tenant: string }> }) {
+  const { tenant } = use(params);
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +17,7 @@ export default function RequestsList({ params }: { params: { tenant: string } })
     const load = async () => {
       setLoading(true);
       try {
-        const data = await fetchMyRequests(params.tenant);
+        const data = await fetchMyRequests(tenant);
         setRequests(data);
       } catch (err: any) {
         setError(err?.response?.data?.detail || err.message || "Failed to load requests");
@@ -25,7 +26,7 @@ export default function RequestsList({ params }: { params: { tenant: string } })
       }
     };
     load();
-  }, [params.tenant]);
+  }, [tenant]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -34,7 +35,7 @@ export default function RequestsList({ params }: { params: { tenant: string } })
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">Your Service Requests</h1>
-            <Link href={`/${params.tenant}/requests/new`} className="text-sm">
+            <Link href={`/${tenant}/requests/new`} className="text-sm">
               Submit new request
             </Link>
           </div>
@@ -45,7 +46,7 @@ export default function RequestsList({ params }: { params: { tenant: string } })
 
           <div className="space-y-4 mt-4">
             {requests.map((r) => (
-              <Link key={r.id} href={`/${params.tenant}/requests/${r.id}`} className="block">
+              <Link key={r.id} href={`/${tenant}/requests/${r.id}`} className="block">
                 <div className="p-4 border rounded-lg bg-card hover:shadow-md transition">
                   <div className="flex justify-between items-start">
                     <div>

@@ -1,12 +1,12 @@
 // src/app/portal/select-utility/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getTenants } from "@/lib/api";
 import { AWLogo } from "@/components/AWLogo";
 
-export default function SelectUtilityPage() {
+function SelectUtilityContent() {
   const [tenants, setTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -74,5 +74,13 @@ export default function SelectUtilityPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function SelectUtilityPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SelectUtilityContent />
+    </Suspense>
   );
 }

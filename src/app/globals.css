@@ -1,51 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
-    --primary: 210 100% 40%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 210 100% 40%;
+    /* AccessWASH Brand Colors */
+    --background: #FAFBFC;
+    --foreground: #1A202C;
+    --card: #FFFFFF;
+    --card-foreground: #1A202C;
+    --popover: #FFFFFF;
+    --popover-foreground: #1A202C;
+    --primary: #1E90FF; /* AccessWASH Primary Blue */
+    --primary-foreground: #FFFFFF;
+    --secondary: #228B22; /* AccessWASH Secondary Green */
+    --secondary-foreground: #FFFFFF;
+    --muted: #F7FAFC;
+    --muted-foreground: #718096;
+    --accent: #EBF8FF;
+    --accent-foreground: #2B6CB0;
+    --destructive: #E53E3E;
+    --destructive-foreground: #FFFFFF;
+    --border: #E2E8F0;
+    --input: #E2E8F0;
+    --ring: #1E90FF;
+    --success: #38A169;
+    --success-foreground: #FFFFFF;
+    --warning: #D69E2E;
+    --warning-foreground: #FFFFFF;
+    --info: #3182CE;
+    --info-foreground: #FFFFFF;
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 100% 50%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 210 100% 50%;
+    --background: #1A1B23;
+    --foreground: #F7FAFC;
+    --card: #2D3748;
+    --card-foreground: #F7FAFC;
+    --popover: #2D3748;
+    --popover-foreground: #F7FAFC;
+    --primary: #63B3ED;
+    --primary-foreground: #1A202C;
+    --secondary: #68D391;
+    --secondary-foreground: #1A202C;
+    --muted: #2D3748;
+    --muted-foreground: #A0AEC0;
+    --accent: #2C5282;
+    --accent-foreground: #E2E8F0;
+    --destructive: #FC8181;
+    --destructive-foreground: #1A202C;
+    --border: #4A5568;
+    --input: #4A5568;
+    --ring: #63B3ED;
+    --success: #68D391;
+    --success-foreground: #1A202C;
+    --warning: #F6E05E;
+    --warning-foreground: #1A202C;
+    --info: #63B3ED;
+    --info-foreground: #1A202C;
   }
 }
 
@@ -54,24 +69,122 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
   }
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold;
+  h1 {
+    @apply text-3xl font-bold text-foreground;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+  h2 {
+    @apply text-2xl font-semibold text-foreground;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+  h3 {
+    @apply text-xl font-medium text-foreground;
+    line-height: 1.4;
+  }
+  h4 {
+    @apply text-lg font-medium text-foreground;
+    line-height: 1.4;
+  }
+  p {
+    @apply text-foreground;
+    line-height: 1.6;
   }
 }
 
 @layer components {
-  .gradient-bg {
-    @apply bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-blue-950/20 dark:via-background dark:to-blue-950/20;
+  .card {
+    @apply bg-card text-card-foreground rounded-xl p-6 shadow-lg border border-border backdrop-blur-sm;
+    background: linear-gradient(145deg, hsl(var(--card)), hsl(var(--card) / 0.95));
   }
   
   .card-hover {
-    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
+    @apply transition-all duration-300 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1;
   }
   
-  .enterprise-shadow {
-    @apply shadow-sm border border-border/50;
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl;
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.9));
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90 active:scale-95 px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl;
+    background: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--secondary) / 0.9));
+  }
+  
+  .btn-outline {
+    @apply border-2 border-primary text-primary bg-transparent hover:bg-primary hover:text-primary-foreground active:scale-95 px-6 py-3 rounded-lg font-medium transition-all duration-200;
+  }
+  
+  .glass-effect {
+    @apply backdrop-blur-md bg-white/10 border border-white/20;
+  }
+  
+  .nav-link {
+    @apply text-muted-foreground hover:text-primary transition-all duration-200 font-medium relative;
+  }
+  
+  .nav-link.active {
+    @apply text-primary;
+  }
+  
+  .nav-link.active::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full;
+  }
+  
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:text-primary hover:bg-accent/50 transition-all duration-200 font-medium;
+  }
+  
+  .sidebar-link.active {
+    @apply text-primary bg-accent/80 shadow-sm;
+  }
+  
+  .form-input {
+    @apply w-full px-4 py-3 border border-border rounded-lg bg-background/50 backdrop-blur-sm focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 placeholder:text-muted-foreground;
+  }
+  
+  .form-textarea {
+    @apply w-full px-4 py-3 border border-border rounded-lg bg-background/50 backdrop-blur-sm focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 placeholder:text-muted-foreground resize-none min-h-[120px];
+  }
+  
+  .status-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .status-badge.success {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+  }
+  
+  .status-badge.warning {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400;
+  }
+  
+  .status-badge.error {
+    @apply bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400;
+  }
+  
+  .status-badge.info {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400;
+  }
+  
+  .loading-spinner {
+    @apply animate-spin rounded-full border-2 border-muted border-t-primary;
+  }
+  
+  .fade-in {
+    @apply animate-fade-in;
+  }
+  
+  .scale-in {
+    @apply animate-scale-in;
   }
 }

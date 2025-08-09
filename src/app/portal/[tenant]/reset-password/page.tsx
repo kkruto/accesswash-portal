@@ -3,14 +3,16 @@ import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 
 interface ResetPasswordPageProps {
-  params: { tenant: string }
-  searchParams: { token?: string }
+  params: Promise<{ tenant: string }>
+  searchParams: Promise<{ token?: string }>
 }
 
-export default function ResetPasswordPage({ 
+export default async function ResetPasswordPage({ 
   params, 
   searchParams 
 }: ResetPasswordPageProps) {
+  const { tenant } = await params;
+  const { token } = await searchParams;
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -25,9 +27,9 @@ export default function ResetPasswordPage({
             </p>
           </div>
           <AuthForm 
-            type="reset-password" 
-            tenant={params.tenant}
-            token={searchParams.token}
+            type="reset" 
+            tenant={tenant}
+            token={token}
           />
         </div>
       </main>

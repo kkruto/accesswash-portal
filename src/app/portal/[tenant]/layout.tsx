@@ -5,11 +5,11 @@ import { getTenant } from "@/lib/api";
 
 interface TenantLayoutProps {
   children: React.ReactNode;
-  params: { tenant: string };
+  params: Promise<{ tenant: string }>;
 }
 
 export default async function TenantLayout({ children, params }: TenantLayoutProps) {
-  const tenantId = params.tenant;
+  const { tenant: tenantId } = await params;
   try {
     const tenantData = await getTenant(tenantId);
     if (!tenantData) {

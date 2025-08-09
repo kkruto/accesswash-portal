@@ -2,13 +2,14 @@ import { ProfileContent } from '@/components/profile-content'
 import { DashboardLayout } from '@/components/dashboard-layout'
 
 interface ProfilePageProps {
-  params: { tenant: string }
+  params: Promise<{ tenant: string }>
 }
 
-export default function ProfilePage({ params }: ProfilePageProps) {
+export default async function ProfilePage({ params }: ProfilePageProps) {
+  const { tenant } = await params;
   return (
-    <DashboardLayout tenant={params.tenant}>
-      <ProfileContent tenant={params.tenant} />
+    <DashboardLayout tenant={tenant}>
+      <ProfileContent tenant={tenant} />
     </DashboardLayout>
   )
 }
