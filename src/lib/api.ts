@@ -1,319 +1,231 @@
-import axios, { AxiosError } from "axios";
-import type { Tenant, User, DashboardData, UserProfile } from "./types";
-
+// src/lib/api.ts
 /**
- * Centralized API module for AccessWASH frontend.
- * Uses tenant-aware base url: https://{tenant}.{NEXT_PUBLIC_API_DOMAIN}/api
+ * Centralized API client for AccessWASH frontend.
+ *
+ * - Uses tenant subdomains for tenant-scoped requests:
+ *   https://{tenant}.{NEXT_PUBLIC_API_DOMAIN}/api/...
+ * - Supports JWT access/refresh tokens.
+ * - Calls tenant-agnostic endpoints (tenants list) using NEXT_PUBLIC_API_BASE_URL.
+ *
+ * Environment:
+ * - NEXT_PUBLIC_API_DOMAIN (e.g. accesswash.org)
+ * - NEXT_PUBLIC_API_BASE_URL (e.g. https://demo.accesswash.org/api)
  */
 
-const API_DOMAIN = process.env.NEXT_PUBLIC_API_DOMAIN || "accesswash.org";
+const API_DOMAIN = process.env.NEXT_PUBLIC_API_DOMAIN || "demo.accesswash.org";
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || `https://${API_DOMAIN}/api`).replace(/\/$/, "");
 
-const axiosInstance = axios.create({
-  withCredentials: true,
-  timeout: 15000,
-});
+type LoginResponse = { access: string; refresh?: string; [k: string]: any };
 
-axiosInstance.interceptors.response.use(
-  (res) => res,
-  (err: AxiosError) => {
-    if (err.response?.status === 401) {
-      // Optionally notify app about unauthenticated state:
-      // window.dispatchEvent(new Event("aw:unauth"));
-    }
-    return Promise.reject(err);
-  }
-);
-
-function baseUrlForTenant(tenant: string) {
+/** Build tenant subdomain base url */
+function tenantBase(tenant: string) {
   return `https://${tenant}.${API_DOMAIN}/api`;
 }
 
-/* --------------------- TENANTS --------------------- */
-
-export async function getTenants(): Promise<Tenant[]> {
-  // Mock data for development - replace with real API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        {
-          id: "demo",
-          name: "Nairobi Water and Sanitation Company",
-          subdomain: "demo",
-          logo: undefined,
-          primaryColor: "#0066CC",
-          secondaryColor: "#004499"
-        },
-        {
-          id: "nakuru",
-          name: "Nakuru City Water Services",
-          subdomain: "nakuru",
-          logo: undefined,
-          primaryColor: "#0066CC",
-          secondaryColor: "#004499"
-        },
-        {
-          id: "riverside",
-          name: "Riverside Utilities",
-          subdomain: "riverside",
-          logo: undefined,
-          primaryColor: "#0066CC",
-          secondaryColor: "#004499"
-        },
-        {
-          id: "northshore",
-          name: "North Shore Water Authority",
-          subdomain: "northshore",
-          logo: undefined,
-          primaryColor: "#0066CC",
-          secondaryColor: "#004499"
-        }
-      ]);
-    }, 500);
-  });
-}
-
-export async function validateTenant(tenant: string): Promise<Tenant> {
-  // Mock validation - replace with real API call
-  const tenants = await getTenants();
-  const found = tenants.find(t => t.subdomain === tenant);
-  if (!found) {
-    throw new Error("Tenant not found");
+/** TENANTS (global, not tenant-subdomain) */
+export async function getTenants(): Promise<any[]> {
+  const res = await fetch(`${API_BASE}/tenants/`);
+  if (!res.ok) {
+    throw new Error("Failed to fetch tenants");
   }
-  return found;
+  return res.json();
 }
 
-/* --------------------- AUTH --------------------- */
-
-export async function login(tenant: string, payload: { email: string; password: string }) {
-  // Mock login for development
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (payload.email && payload.password) {
-        resolve({ token: "mock-token", user: { id: "1", email: payload.email } });
-      } else {
-        reject(new Error("Invalid credentials"));
-      }
-    }, 1000);
-  });
+export async function getTenant(tenantId: string): Promise<any | null> {
+  // Try detail endpoint first
+  try {
+    const res = await fetch(`${API_BASE}/tenants/${tenantId}/`);
+    if (res.ok) return res.json();
+  } catch (e) {
+    // fallback to list
+  }
+  const list = await getTenants();
+  return list.find((t: any) => (t.slug ?? String(t.id)) === tenantId) ?? null;
 }
 
-export async function register(tenant: string, payload: any) {
-  // Mock registration
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (payload.email && payload.password && payload.firstName && payload.lastName) {
-        resolve({ message: "Registration successful" });
-      } else {
-        reject(new Error("Missing required fields"));
-      }
-    }, 1000);
-  });
+/** Token helpers (localStorage) */
+function getStoredAccess() {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("aw_access_token");
+}
+function getStoredRefresh() {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("aw_refresh_token");
+}
+function setStoredTokens(data: LoginResponse) {
+  if (typeof window === "undefined") return;
+  if (data.access) localStorage.setItem("aw_access_token", data.access);
+  if (data.refresh) localStorage.setItem("aw_refresh_token", data.refresh);
+}
+function clearStoredTokens() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("aw_access_token");
+  localStorage.removeItem("aw_refresh_token");
+  localStorage.removeItem("aw_auth_scope");
 }
 
-export async function logout(tenant: string) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ message: "Logged out successfully" });
-    }, 500);
-  });
-}
+/**
+ * clientFetch
+ * - attaches Authorization header if access token present
+ * - attempts refresh once on 401 (uses aw_auth_scope to choose endpoint)
+ */
+export async function clientFetch(tenant: string, path: string, opts: RequestInit = {}) {
+  const base = tenantBase(tenant);
+  const url = path.startsWith("/") ? `${base}${path}` : `${base}/${path}`;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(opts.headers ? (opts.headers as Record<string, string>) : {}),
+  };
 
-export async function forgotPassword(tenant: string, payload: { email: string }) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (payload.email) {
-        resolve({ message: "Reset instructions sent" });
-      } else {
-        reject(new Error("Email is required"));
-      }
-    }, 1000);
-  });
-}
+  const access = getStoredAccess();
+  if (access) headers["Authorization"] = `Bearer ${access}`;
 
-export async function resetPassword(tenant: string, payload: { password: string; token: string }) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (payload.password && payload.token) {
-        resolve({ message: "Password reset successful" });
-      } else {
-        reject(new Error("Invalid reset token"));
-      }
-    }, 1000);
-  });
-}
+  let res = await fetch(url, { ...opts, headers, credentials: "include" } as RequestInit);
 
-/* --------------------- USER / PROFILE --------------------- */
-
-export async function getCurrentUser(tenant: string): Promise<User> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id: "1",
-        email: "john.doe@example.com",
-        firstName: "John",
-        lastName: "Doe",
-        phone: "+1234567890"
-      });
-    }, 500);
-  });
-}
-
-export async function getProfile(tenant: string): Promise<UserProfile> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id: "1",
-        email: "john.doe@example.com",
-        firstName: "John",
-        lastName: "Doe",
-        phone: "+1234567890",
-        accountNumber: "AWP-001234",
-        accountStatus: "active",
-        memberSince: "2023-01-15T00:00:00Z",
-        serviceAddress: {
-          street: "123 Main Street",
-          city: "Springfield",
-          state: "CA",
-          zipCode: "90210"
-        },
-        billingCycle: "Monthly",
-        paymentMethod: "Auto Pay - Bank Account",
-        autoPay: true
-      });
-    }, 500);
-  });
-}
-
-/* --------------------- DASHBOARD --------------------- */
-
-export async function getDashboardData(tenant: string): Promise<DashboardData> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        currentBalance: 125.50,
-        waterUsage: 2840,
-        openRequests: 2,
-        recentRequests: [
-          {
-            id: "1",
-            title: "Water Pressure Issue",
-            description: "Low water pressure in kitchen sink",
-            status: "in_progress",
-            createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-            updatedAt: new Date(Date.now() - 86400000 * 1).toISOString()
-          },
-          {
-            id: "2", 
-            title: "Billing Question",
-            description: "Question about last month's bill",
-            status: "completed",
-            createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
-            updatedAt: new Date(Date.now() - 86400000 * 5).toISOString()
-          }
-        ]
-      });
-    }, 800);
-  });
-}
-
-/* --------------------- SERVICE REQUESTS --------------------- */
-
-export async function submitServiceRequest(
-  tenant: string,
-  payload: { title: string; description: string; type?: string; files?: File[] }
-) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (payload.title && payload.description) {
-        resolve({ 
-          id: Date.now().toString(),
-          message: "Service request submitted successfully",
-          status: "pending"
+  if (res.status === 401) {
+    // refresh using saved refresh token and scope
+    const refresh = getStoredRefresh();
+    const scope = typeof window !== "undefined" ? localStorage.getItem("aw_auth_scope") : null;
+    if (refresh && scope) {
+      const refreshEndpoint = scope === "users" ? "/users/auth/refresh/" : "/portal/auth/refresh/";
+      try {
+        const r = await fetch(`${base}${refreshEndpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh }),
+          credentials: "include",
         });
-      } else {
-        reject(new Error("Title and description are required"));
+        if (r.ok) {
+          const data: LoginResponse = await r.json();
+          setStoredTokens(data);
+          // retry original request with new access token
+          const newAccess = getStoredAccess();
+          if (newAccess) headers["Authorization"] = `Bearer ${newAccess}`;
+          res = await fetch(url, { ...opts, headers, credentials: "include" } as RequestInit);
+          return res;
+        } else {
+          clearStoredTokens();
+        }
+      } catch (e) {
+        clearStoredTokens();
       }
-    }, 1500);
-  });
+    }
+  }
+
+  return res;
 }
 
+/** CUSTOMER (portal) */
+export async function customerLogin(tenant: string, creds: { email: string; password: string }) {
+  const base = tenantBase(tenant);
+  const res = await fetch(`${base}/portal/auth/login/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(creds),
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Login failed");
+  }
+  const data: LoginResponse = await res.json();
+  if (typeof window !== "undefined") localStorage.setItem("aw_auth_scope", "portal");
+  setStoredTokens(data);
+  return data;
+}
+
+export async function customerRegister(tenant: string, payload: any) {
+  const base = tenantBase(tenant);
+  const res = await fetch(`${base}/portal/auth/register/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Register failed");
+  return res.json();
+}
+
+export async function getDashboardData(tenant: string) {
+  const res = await clientFetch(tenant, "/portal/dashboard/", { method: "GET" });
+  if (!res.ok) throw new Error("Failed to load dashboard");
+  return res.json();
+}
+
+export async function getProfile(tenant: string) {
+  const res = await clientFetch(tenant, "/portal/profile/", { method: "GET" });
+  if (!res.ok) throw new Error("Failed to load profile");
+  return res.json();
+}
+
+/** SUPPORT / REQUESTS */
 export async function fetchMyRequests(tenant: string) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        {
-          id: "1",
-          title: "Water Pressure Issue",
-          description: "Low water pressure in kitchen sink",
-          status: "in_progress",
-          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-          attachments: []
-        },
-        {
-          id: "2",
-          title: "Billing Question", 
-          description: "Question about last month's bill",
-          status: "completed",
-          createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
-          attachments: []
-        },
-        {
-          id: "3",
-          title: "Leak in Basement",
-          description: "Small leak detected near water heater",
-          status: "pending",
-          createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-          attachments: []
-        }
-      ]);
-    }, 600);
-  });
+  const res = await clientFetch(tenant, "/support/requests/", { method: "GET" });
+  if (!res.ok) throw new Error("Failed to load requests");
+  return res.json();
 }
 
-export async function getRequest(tenant: string, id: string | number) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const requests = [
-        {
-          id: "1",
-          title: "Water Pressure Issue",
-          description: "Low water pressure in kitchen sink. The issue started about a week ago and has been getting progressively worse. Water flow is particularly slow during peak hours.",
-          status: "in_progress",
-          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-          attachments: []
-        },
-        {
-          id: "2",
-          title: "Billing Question",
-          description: "Question about last month's bill. There seems to be an unusual spike in usage that I'd like to understand better.",
-          status: "completed",
-          createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
-          attachments: []
-        }
-      ];
-      
-      const found = requests.find(r => r.id === id.toString());
-      if (found) {
-        resolve(found);
-      } else {
-        reject(new Error("Request not found"));
-      }
-    }, 400);
+export async function getRequest(tenant: string, id: string) {
+  const res = await clientFetch(tenant, `/support/requests/${id}/`, { method: "GET" });
+  if (!res.ok) throw new Error("Failed to load request");
+  return res.json();
+}
+
+/** STAFF (users + distro) */
+export async function staffLogin(tenant: string, creds: { username: string; password: string }) {
+  const base = tenantBase(tenant);
+  const res = await fetch(`${base}/users/auth/login/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(creds),
+    credentials: "include",
   });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Staff login failed");
+  }
+  const data: LoginResponse = await res.json();
+  if (typeof window !== "undefined") localStorage.setItem("aw_auth_scope", "users");
+  setStoredTokens(data);
+  return data;
+}
+
+export async function getDistroOverview(tenant: string) {
+  const res = await clientFetch(tenant, "/distro/overview/", { method: "GET" });
+  if (!res.ok) throw new Error("Failed to load distro overview");
+  return res.json();
+}
+
+export async function getAssets(tenant: string, params?: Record<string, any>) {
+  const query = params ? "?" + new URLSearchParams(params as any).toString() : "";
+  const res = await clientFetch(tenant, `/distro/assets/${query}`, { method: "GET" });
+  if (!res.ok) throw new Error("Failed to load assets");
+  return res.json();
+}
+
+export async function getAssetsGeojson(tenant: string) {
+  const res = await clientFetch(tenant, "/distro/assets/geojson/", { method: "GET" });
+  if (!res.ok) throw new Error("Failed to load assets geojson");
+  return res.json();
+}
+
+/** Logout helpers */
+export async function customerLogout(tenant: string) {
+  const res = await fetch(`${tenantBase(tenant)}/portal/auth/logout/`, { method: "POST", credentials: "include" });
+  clearStoredTokens();
+  return res.ok;
+}
+
+export async function staffLogout(tenant: string) {
+  const res = await fetch(`${tenantBase(tenant)}/users/auth/logout/`, { method: "POST", credentials: "include" });
+  clearStoredTokens();
+  return res.ok;
 }
 
 export default {
   getTenants,
-  validateTenant,
-  login,
-  register,
-  logout,
-  forgotPassword,
-  resetPassword,
-  getCurrentUser,
-  getProfile,
-  getDashboardData,
-  submitServiceRequest,
-  fetchMyRequests,
-  getRequest,
+  getTenant,
+  customerLogin,
+  staffLogin,
+  clientFetch,
 };

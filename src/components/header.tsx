@@ -1,49 +1,35 @@
-'use client';
+// src/components/header.tsx
+"use client";
 
-import Link from 'next/link'
-import Image from 'next/image'
-import { Button } from '@/components/ui/button'
-import { MoonIcon, SunIcon } from '@radix-ui/react-icons'
-import { useTheme } from 'next-themes'
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { AWLogo } from "./AWLogo";
 
 export function Header() {
-  const { theme, setTheme } = useTheme()
+  const pathname = usePathname();
+  const isPortal = pathname?.startsWith("/portal");
 
   return (
     <header className="bg-background border-b">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">AW</span>
-            </div>
-            <span className="text-xl font-bold">AccessWASH</span>
-          </Link>
-          
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            >
-              {theme === 'dark' ? (
-                <SunIcon className="h-5 w-5" />
-              ) : (
-                <MoonIcon className="h-5 w-5" />
-              )}
-            </Button>
-            
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/select-utility" className="text-sm font-medium hover:text-primary">
-                Select Utility
-              </Link>
-              <Link href="/support" className="text-sm font-medium hover:text-primary">
-                Support
-              </Link>
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <Link href="/" className="flex items-center">
+          <AWLogo compact />
+        </Link>
+
+        <div className="flex items-center space-x-4">
+          {isPortal ? (
+            <nav className="hidden md:flex items-center space-x-4">
+              <Link href="#" className="text-sm font-medium hover:text-primary">Support</Link>
+              <Link href="#" className="text-sm font-medium hover:text-primary">Contact</Link>
             </nav>
-          </div>
+          ) : (
+            <nav className="hidden md:flex items-center space-x-4">
+              <Link href="/portal" className="text-sm font-medium hover:text-primary">Portal</Link>
+              <Link href="/about" className="text-sm font-medium hover:text-primary">About</Link>
+            </nav>
+          )}
         </div>
       </div>
     </header>
-  )
+  );
 }
