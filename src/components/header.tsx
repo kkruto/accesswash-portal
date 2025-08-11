@@ -1,85 +1,90 @@
-// src/components/header.tsx
-"use client";
+import Link from "next/link"
+import { AWLogo } from "./aw-logo"
+import { Button } from "@/src/components/ui/button"
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { AWLogo } from "./AWLogo";
-import { Button } from "./ui/button";
-import { Menu, X, Phone, Mail } from "lucide-react";
-import { useState } from "react";
+interface HeaderProps {
+  isLoggedIn?: boolean
+  userType?: "customer" | "staff"
+  userName?: string
+}
 
-export function Header() {
-  const pathname = usePathname();
-  const isPortal = pathname?.startsWith("/portal");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+export function Header({ isLoggedIn = false, userType, userName }: HeaderProps) {
+  if (isLoggedIn) {
+    return (
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link href="/" className="flex items-center">
+              <AWLogo />
+            </Link>
+
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Welcome, {userName}</span>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
+              >
+                <Link href={`/${userType}/settings`}>Settings</Link>
+              </Button>
+              <Button
+                asChild
+                size="sm"
+                className={userType === "customer" ? "bg-teal-600 hover:bg-teal-700" : "bg-blue-600 hover:bg-blue-700"}
+              >
+                <Link href="/">Logout</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+    )
+  }
 
   return (
-    <header className="bg-background/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-50 shadow-sm">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center group">
-            <AWLogo compact />
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <Link href="/" className="flex items-center">
+            <AWLogo />
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6">
-            {isPortal ? (
-              <nav className="flex items-center space-x-6">
-                <Link href="#" className="nav-link flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  Support
-                </Link>
-                <Link href="#" className="nav-link flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  Contact
-                </Link>
-              </nav>
-            ) : (
-              <nav className="flex items-center space-x-6">
-                <Link href="/portal" className="nav-link">Portal</Link>
-                <Link href="/about" className="nav-link">About</Link>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/portal">Get Started</Link>
-                </Button>
-              </nav>
-            )}
-          </div>
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link href="/about" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">
+              About
+            </Link>
+            <Link href="/support" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">
+              Support
+            </Link>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="border-teal-600 text-teal-600 hover:bg-teal-600 hover:text-white bg-transparent"
+            >
+              <Link href="#customer-portal">Customer Portal</Link>
+            </Button>
+            <Button asChild size="sm" className="bg-blue-600 text-white hover:bg-blue-700">
+              <Link href="#utility-login">Utility Login</Link>
+            </Button>
+          </nav>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 rounded-lg hover:bg-accent transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <div className="md:hidden flex items-center space-x-2">
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="border-teal-600 text-teal-600 hover:bg-teal-600 hover:text-white bg-transparent"
+            >
+              <Link href="#customer-portal">Customer</Link>
+            </Button>
+            <Button asChild size="sm" className="bg-blue-600 text-white hover:bg-blue-700">
+              <Link href="#utility-login">Utility</Link>
+            </Button>
+          </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="md:hidden mt-4 py-4 border-t border-border animate-fade-in">
-            {isPortal ? (
-              <nav className="flex flex-col space-y-3">
-                <Link href="#" className="nav-link flex items-center gap-2 py-2">
-                  <Phone className="w-4 h-4" />
-                  Support
-                </Link>
-                <Link href="#" className="nav-link flex items-center gap-2 py-2">
-                  <Mail className="w-4 h-4" />
-                  Contact
-                </Link>
-              </nav>
-            ) : (
-              <nav className="flex flex-col space-y-3">
-                <Link href="/portal" className="nav-link py-2">Portal</Link>
-                <Link href="/about" className="nav-link py-2">About</Link>
-                <Button asChild variant="outline" size="sm" className="w-fit">
-                  <Link href="/portal">Get Started</Link>
-                </Button>
-              </nav>
-            )}
-          </div>
-        )}
       </div>
     </header>
-  );
+  )
 }
